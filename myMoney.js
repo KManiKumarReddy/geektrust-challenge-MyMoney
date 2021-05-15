@@ -29,6 +29,29 @@ const sip = (database, equity, debt, gold) => {
   data.sip = { equity: Number(equity), debt: Number(debt), gold: Number(gold) };
 };
 
+const balancePortfolioMix = (database) => {
+  const data = database;
+  data.balances.pop();
+  const currentBalance = data.balances.pop();
+  // balance portfolio
+  const total = currentBalance.equity + currentBalance.debt + currentBalance.gold;
+  Object.keys(currentBalance).forEach(
+    (commodity) => {
+      currentBalance[commodity] = Math.floor(data.mix[commodity] * total);
+    },
+  );
+
+  // save to database
+  data.balances.push(currentBalance);
+  const nextMonth = {};
+  Object.keys(currentBalance).forEach(
+    (commodity) => {
+      nextMonth[commodity] = currentBalance[commodity] + data.sip[commodity];
+    },
+  );
+  data.balances.push(nextMonth);
+};
+
 const change = (database, equity, debt, gold, month) => {
   const data = database;
   const percentageChange = { equity, debt, gold };
@@ -50,6 +73,13 @@ const change = (database, equity, debt, gold, month) => {
     },
   );
 
+  // rebalance on june and december
+  if (month === 'JUNE' || month === 'DECEMBER') {
+    data.balances.push('');
+    balancePortfolioMix(database);
+    return;
+  }
+
   // add SIP and add next month
   const nextMonth = {};
   Object.keys(amounts).forEach(
@@ -66,33 +96,16 @@ const balance = (database, month) => {
 };
 
 const rebalance = (database) => {
-  const data = database;
-  if (data.balances.length < 7) {
+  const balancesLength = database.balances.length;
+  if (balancesLength > 12) {
+    const currentBalance = database.balances[11];
+    process.stdout.write(`${currentBalance.equity} ${currentBalance.debt} ${currentBalance.gold} \n`);
+  } else if (balancesLength > 6) {
+    const currentBalance = database.balances[5];
+    process.stdout.write(`${currentBalance.equity} ${currentBalance.debt} ${currentBalance.gold} \n`);
+  } else {
     process.stdout.write('CANNOT_REBALANCE\n');
-    return;
   }
-  data.balances.pop();
-  const currentBalance = data.balances.pop();
-  // balance portfolio
-  const total = currentBalance.equity + currentBalance.debt + currentBalance.gold;
-  Object.keys(currentBalance).forEach(
-    (commodity) => {
-      currentBalance[commodity] = Math.floor(data.mix[commodity] * total);
-    },
-  );
-
-  // save to database
-  data.balances.push(currentBalance);
-  const nextMonth = {};
-  Object.keys(currentBalance).forEach(
-    (commodity) => {
-      nextMonth[commodity] = currentBalance[commodity] + data.sip[commodity];
-    },
-  );
-  data.balances.push(nextMonth);
-
-  // print rebalanced portfolio
-  process.stdout.write(`${currentBalance.equity} ${currentBalance.debt} ${currentBalance.gold} \n`);
 };
 
 module.exports = {
