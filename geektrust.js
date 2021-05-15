@@ -1,25 +1,27 @@
 const fs = require('fs');
 const readline = require('readline');
-const myMoney = require('./myMoney');
+const MyMoney = require('./MyMoney');
 
-const GeekTrust = () => {
-  const database = {};
-  const processCommand = (commandString) => {
+class GeekTrust {
+  constructor() {
+    this.myMoneyInstance = new MyMoney();
+  }
+
+  processCommand(commandString) {
     const args = commandString.split(' ');
-    myMoney[(args.shift()).toLowerCase()](database, ...args);
-  };
+    this.myMoneyInstance[(args.shift()).toLowerCase()](...args);
+  }
 
-  const main = (fileName) => {
+  main(fileName) {
     const lineReader = readline.createInterface({
       input: fs.createReadStream(fileName),
     });
 
     lineReader.on('line', (line) => {
-      processCommand(line);
+      this.processCommand(line);
     });
-  };
-  const fileName = process.argv[2];
-  main(fileName);
-};
+  }
+}
 
-GeekTrust();
+const geekTrustObj = new GeekTrust();
+geekTrustObj.main(process.argv[2]);
